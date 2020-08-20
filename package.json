@@ -1,0 +1,17 @@
+{
+    "name": "twitterbot",
+    "version": "1.0.0",
+    "description": "AutoDM/Menfess Twitter bot that implements Autohook and asynchronous function of JavaScript.",
+    "main": "index.js",
+    "scripts": {
+      "start": "node index.js"
+    },
+    "author": "opemvbs",
+    "license": "MIT",
+    "dependencies": {
+      "dotenv": "^8.2.0",
+      "twitter-autohook": "^1.7.2",
+      "request": "^2.88.2"
+    }
+  }
+  
