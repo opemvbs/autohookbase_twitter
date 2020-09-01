@@ -1,6 +1,6 @@
 {
-    "name": "twitterbot",
-    "version": "1.0.0",
+    "name": "autotwitterbot",
+    "version": "1.1.0",
     "description": "AutoDM/Menfess Twitter bot that implements Autohook and asynchronous function of JavaScript.",
     "main": "index.js",
     "scripts": {
