@@ -38,10 +38,13 @@ async function processEvent(event) {
         return;
     };
 
-    if (!senderMessage.includes('[test]')) {
+    // Put your desired keyword here, replace the [test] keyword.
+    if (!(senderMessage.toLowerCase()).includes('[test]')) {
         return;
-    }
+    };
 
+    // Put your own sender id to block the bot from sending DM to itself.
+    // Check it in console.log(senderId);
     if (senderId === '1267122167306543104') {
         return;
     };
@@ -49,6 +52,9 @@ async function processEvent(event) {
     await markAsRead(senderMsgId, senderId);
     await indicateTyping(senderId);
 
+    // This if else if functions will check the messages for an image.
+    // If there's no image, then it will check for URL/Link.
+    // If there's no URL/Link, then it will just post the text.
     if (typeof senderAttachment !== 'undefined') {
 
         const senderMediaUrl = senderAttachment.media.media_url;
@@ -256,7 +262,6 @@ async function postTweet(url, sender_screen_name) {
     await post(sendTwt);
     console.log(`[CONSOLE] Tweeted user @${sender_screen_name}'s message.`);
 };
-
 
 
 function sleep(ms) {
