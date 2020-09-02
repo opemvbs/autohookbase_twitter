@@ -18,6 +18,14 @@ This bot uses Node.js in order to run the codes. Install the current version of 
 
 To clone the repository.
 
+- [Twitter Developer Apps](https://developer.twitter.com/en)
+
+Make a new Twitter account for your autobase, don't use your personal Twitter account. Create the app for your bot to use [here](https://developer.twitter.com/en/apps), register your app, and then put your authentication information to the .env file.
+
+- [Heroku](https://heroku.com) or [Glitch](https://glitch.com/)
+
+You can deploy the bot to Heroku or Glitch so you don't have to host it on your computer. Note: Heroku and Glitch have its own limitations, read more about it yourself.
+
 
 ## Dependencies
 
