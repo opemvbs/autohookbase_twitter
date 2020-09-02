@@ -1,6 +1,6 @@
 # autohookbase_twitter
 
-This is a Twitter bot that utilizes [twitterdev/autohook](https://github.com/twitterdev/autohook)  to automatically process Twitter's webhook for you asynchronously. This bot will detect a Direct Message event which will take the message that someone Direct Message'd your Twitter account as an input, and then check it whether or not it contains an image/link or just a message, and will process it to post as your own tweet. You are able to filter to only process messages that contains certain keyword, as an example inside is ```[test]```keyword.
+This is a Twitter bot that utilizes [twitterdev/autohook](https://github.com/twitterdev/autohook)  to automatically process Twitter's webhook for you asynchronously. This bot will detect a Direct Message event which will take the message that someone Direct Message'd your Twitter account as an input, and then check it whether or not it contains an image/link or just a message, and will process it to post as your own tweet. You are able to filter to only process messages that contains certain keyword, as an example inside is `[test]`keyword.
 
 
 ## Requirements
@@ -46,9 +46,9 @@ Or you can just do this on terminal inside the cloned repository.
 
 ## TODO
 
-- ~~Put in more features, like put limitations on minimal followers, tweets, or other things other people had to have in order to use your autobase~~.
+- Put in more features, ~~like put limitations on minimal followers, tweets, or other things other people had to have in order to use your autobase~~.
 - ~~Put catch error function to catch more errors/anomalies~~.
-- Other improvements that is not in my mind right now.
+- Other improvements and features that is not in my mind right now.
 
 ## Updates
 
