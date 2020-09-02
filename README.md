@@ -51,6 +51,8 @@ Or you can just do this on terminal inside the cloned repository.
 
 ```$ node index.js```
 
+See the demo usage [here](https://raw.githubusercontent.com/opemvbs/autohookbase_twitter/master/demo.webm)
+
 
 ## TODO
 

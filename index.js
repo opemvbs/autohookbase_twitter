@@ -2,7 +2,7 @@ require('dotenv').config();
 
 const { Autohook } = require('twitter-autohook');
 const util = require('util');
-const request = require('request').defaults({encoding: null})
+const request = require('request').defaults({encoding: null});
 
 const get = util.promisify(request.get);
 const post = util.promisify(request.post);
@@ -92,7 +92,7 @@ async function processEvent(event) {
         await uploadMediaInit(imageBytes).then(response => {
             //console.log(JSON.stringify(response, null, 4));
             media = {
-            mediaBody : response.body,
+            mediaBody : response.body
             };
         });
 
@@ -165,7 +165,7 @@ async function markAsRead(message_id, sender_id) {
         oauth: oAuthConfig,
         form: {
         last_read_event_id: message_id,
-        recipient_id: sender_id,
+        recipient_id: sender_id
         },
     };
     return await post(requestRead).then(function(response) {
@@ -180,7 +180,7 @@ async function indicateTyping(sender_id) {
         url: 'https://api.twitter.com/1.1/direct_messages/indicate_typing.json',
         oauth: oAuthConfig,
         form: {
-        recipient_id: sender_id,
+        recipient_id: sender_id
         },
     };
     return await post(requestIndicator).then(function(response) {
@@ -193,7 +193,7 @@ async function getMedia(url) {
 
     const getImage = {
         url: url,
-        oauth: oAuthConfig,
+        oauth: oAuthConfig
     };
     return await get(getImage).then(function(response) {
         return response; 
@@ -227,8 +227,8 @@ async function uploadMediaAppend(media_id, media_data) {
         command: 'APPEND',
         media_id: media_id,
         segment_index: '0',
-        media_data: media_data,
-        },
+        media_data: media_data
+        }
     };
     return await post(uploadImageAppend).then(function(response) {
         return response;
@@ -262,10 +262,10 @@ async function replyMessage(sender_id, sender_screen_name, sender_message) {
             type: 'message_create',
             message_create: {
             target: {
-                recipient_id: sender_id,
+                recipient_id: sender_id
             },
             message_data: {
-                text: `Hi @${sender_screen_name}! 👋. Your message will be tweeted. Please wait.`,
+                text: `Hi @${sender_screen_name}! 👋. Your message will be tweeted. Please wait.`
             },
             },
         },
@@ -288,10 +288,10 @@ async function rejectMessage(sender_id, sender_screen_name) {
             type: 'message_create',
             message_create: {
             target: {
-                recipient_id: sender_id,
+                recipient_id: sender_id
             },
             message_data: {
-                text: `Hi @${sender_screen_name}! 👋. You should have atleast 100 followers, and 500 tweets in order to send a message to this base.`,
+                text: `Hi @${sender_screen_name}! 👋. You should have atleast 100 followers, and 500 tweets in order to send a message to this base.`
             },
             },
         },
