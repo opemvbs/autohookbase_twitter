@@ -1,6 +1,6 @@
 # autohookbase_twitter
 
-This is a Twitter bot that utilizes [twitterdev/autohook](https://github.com/twitterdev/autohook)  to automatically process Twitter's webhook for you asynchronously. This bot will detect a Direct Message event which will take the message that someone Direct Message'd your Twitter account as an input, and then check it whether or not it contains an image/link or just a message, and will process it to post as your own tweet. You are able to filter to only process messages that contains certain keyword, as an example inside is `/tst/`keyword.
+This is a Twitter bot that utilizes [twitterdev/autohook](https://github.com/twitterdev/autohook) to automatically process Twitter's webhook for you asynchronously. This bot will detect a Direct Message event which will take the message that someone Direct Message'd your Twitter account as an input, and then check it whether or not it contains an image/link or just a message, and will process it to post as your own tweet. You are able to filter to only process messages that contains certain keyword, as an example inside is using `/tst/` keyword as a filter. See how it works [here.](https://raw.githubusercontent.com/opemvbs/autohookbase_twitter/master/demo.webm)
 
 ## Requirements
 
@@ -11,7 +11,7 @@ you're on your own. But in theory there shouldn't be any problem anyway.
 
 - [Node.js](https://nodejs.org/en/)
 
-This bot uses Node.js in order to run the codes. Install the current version of Node.js
+This bot uses Node.js in order to run the codes. Install the current version of Node.js.
 
 - Git
 
@@ -49,8 +49,6 @@ Or you can just do this on terminal inside the cloned repository.
 
 ```$ node index.js```
 
-See the demo usage [here.](https://raw.githubusercontent.com/opemvbs/autohookbase_twitter/master/demo.webm)
-
 ## TODO
 
 - Put in more features, ~~like put limitations on minimal followers, tweets, or other things other people had to have in order to use your autobase~~.
@@ -59,5 +57,6 @@ See the demo usage [here.](https://raw.githubusercontent.com/opemvbs/autohookbas
 
 ## Updates
 
+- Updated script to attach the URL of the posted tweet in direct message to users.
 - Updated script to be able to set followers and tweets requirements from user sending message to the bot.
 - Updated script with catch error functions.

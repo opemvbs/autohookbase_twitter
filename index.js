@@ -2,161 +2,234 @@
 
 require('dotenv').config();
 
-const { Autohook } = require('twitter-autohook');
-const util = require('util');
-const request = require('request').defaults({encoding: null});
+const { Autohook }  = require('twitter-autohook');
+const util          = require('util');
+const request       = require('request').defaults({encoding: null});
 
-const get = util.promisify(request.get);
-const post = util.promisify(request.post);
+const get           = util.promisify(request.get);
+const post          = util.promisify(request.post);
 
-// Time variable to be shown in terminal.
-const time = new Date().toUTCString();
+// NOTE: CTRL + F and search for [CHANGEABLE] and change the things as you like.
 
 // This is where your config is saved.
-const oAuthConfig = {
-    token: process.env.ACCESS_TOKEN,
-    token_secret: process.env.ACCESS_TOKEN_SECRET,
-    consumer_key: process.env.CONSUMER_KEY,
-    consumer_secret: process.env.CONSUMER_KEY_SECRET,
-    env: process.env.WEBHOOK_ENV
+const oAuthConfig   = {
+    token           : process.env.ACCESS_TOKEN,
+    token_secret    : process.env.ACCESS_TOKEN_SECRET,
+    consumer_key    : process.env.CONSUMER_KEY,
+    consumer_secret : process.env.CONSUMER_KEY_SECRET,
+    env             : process.env.WEBHOOK_ENV
 };
 
 // This is where the event processing (posting tweet, replying direct message) happens.
-async function processEvent(event) {
+let messageVar  = {};
+let usersVar    = {};
+async function receiveDMEvent(event) {
 
-    // Check if the event received is a direct message event or not.
-    if (!event.direct_message_events) {
-        return;
+    async function getDirectMessage() {
+
+        if (!event.direct_message_events) {
+            return;
+        }
+    
+        // Count the users followers and tweets.
+        const users           = Object.values(event.users);
+        usersVar = {
+            usersFollowersCount : (Object.values(users)[0]).followers_count,
+            usersStatusesCount  : (Object.values(users)[0]).statuses_count
+        };
+
+        // Assigns the important constant variables.
+        var message           = event.direct_message_events.shift();
+        messageVar = {
+            senderScreenName  : event.users[message.message_create.sender_id].screen_name,
+            senderAttachment  : message.message_create.message_data.attachment,
+            senderUrl         : message.message_create.message_data.entities.urls.url,
+            senderMessage     : message.message_create.message_data.text,
+            recipientId       : message.message_create.target.recipient_id,
+            senderId          : message.message_create.sender_id,
+            senderMsgId       : message.id,
+        };
+ 
+        // Check to see if the message is undefined/error.
+        if (typeof message === 'undefined' || typeof message.message_create === 'undefined') {
+            return;
+        }
+    
+        // Check to see if the sender is the same as the recipient of the message.
+        if (messageVar.senderId === messageVar.recipientId) {
+            return;
+        }
+    
+        // [CHANGEABLE] Put your own sender id to block the bot from sending DM to itself.
+        // Check it in console.log(senderId);
+        if (messageVar.senderId === '1267122167306543104') {
+            return;
+        }
+    
+        
+        // [CHANGEABLE] Put your desired keyword here, replace the /tst/ keyword.
+        if (!((messageVar.senderMessage).toLowerCase()).includes('/tst/')) {
+            return;
+        }
+
+        // [CHANGEABLE] Rejects all messages from users below 100 followers and 500 tweets.
+        else if (!(usersVar.usersFollowersCount > 100 && usersVar.usersStatusesCount > 300)) {
+            await rejectMessage(messageVar.senderId, messageVar.senderScreenName);
+            return;
+        }
+        else
+    
+        // This if else if functions will check the messages for an image.
+        // If there's no image, then it will check for URL/Link.
+        // If there's no URL/Link, then it will just post the text.
+        if (typeof messageVar.senderAttachment !== 'undefined') {
+    
+            try {
+    
+                const senderMediaUrl = messageVar.senderAttachment.media.media_url;
+    
+                let image = {};
+                await getMedia(senderMediaUrl).then(response => {
+                    //console.log(JSON.stringify(response, null, 4));
+                    image = { 
+                    imageBuffer: Buffer.from(response.body)
+                    };
+                }); 
+                var imageBase64 = (image.imageBuffer).toString('base64');
+                var imageBytes = Buffer.byteLength(image.imageBuffer, 'base64');
+        
+                let media = {};
+                await uploadMediaInit(imageBytes).then(response => {
+                    //console.log(JSON.stringify(response, null, 4));
+                    media = {
+                    mediaBody : response.body,
+                    };
+                });
+                var mediaJson = JSON.parse(media.mediaBody);
+                var mediaIdString = mediaJson.media_id_string;
+                    
+                await uploadMediaAppend(mediaIdString, imageBase64).then(response => {
+                    //console.log(JSON.stringify(response, null, 4));
+                });
+                   
+                await uploadMediaFinalize(mediaIdString).then(response => {
+                    //console.log(JSON.stringify(response, null, 4));
+                });
+        
+                const senderMediaLink = message.message_create.message_data.entities.urls[0].url;
+                
+                var statusWithUrl = messageVar.senderMessage;
+                var urlToRemove = senderMediaLink;
+                var statusNoUrl = statusWithUrl.replace(urlToRemove, "");
+                
+                const encodeMsg = statusNoUrl;
+                const encodeImg = mediaIdString;
+
+                await postTweet(messageVar.senderScreenName, encodeMsg, undefined, encodeImg);
+            }
+    
+            catch (e) {
+                console.error(e);
+            }
+        }
+    
+        else if (typeof senderAttachment === 'undefined' && typeof senderUrl !== 'undefined') {
+    
+            try {
+    
+                const encodeMsg = messageVar.senderMessage;
+                const encodeUrl = messageVar.senderUrl;
+
+                await postTweet(messageVar.senderScreenName, encodeMsg, encodeUrl, undefined);
+            }
+            
+            catch (e) {
+                console.error(e);
+            }
+        }
+    
+        else if (typeof senderAttachment === 'undefined' && typeof senderUrl === 'undefined') {
+    
+            try {
+    
+                const encodeMsg = messageVar.senderMessage;
+
+                await postTweet(messageVar.senderScreenName, encodeMsg, undefined, undefined);
+            }
+            
+            catch (e) {
+                console.error(e);
+            }
+        }
     }
 
-    // Count the users followers and tweets.
-    const users = event.users;
-    const usersFollowersCount = (Object.values(users)[0]).followers_count;
-    const usersStatusesCount = (Object.values(users)[0]).statuses_count;
+    await getDirectMessage();    
+}
 
-    // Assigns the important constant variables.
-    const message = event.direct_message_events.shift();
-    const senderScreenName = event.users[message.message_create.sender_id].screen_name;
-    const senderAttachment = message.message_create.message_data.attachment; 
-    const senderUrl = message.message_create.message_data.entities.urls.url;
-    const senderMessage = message.message_create.message_data.text;
-    const recipientId = message.message_create.target.recipient_id;
-    const senderId = message.message_create.sender_id;
-    const senderMsgId = message.id;
+async function replyDMEvent(event) {
 
-    // Check to see if the message is undefined/error.
-    if (typeof message === 'undefined' || typeof message.message_create === 'undefined') {
-        return;
+    let tweetId = {};
+    async function getTweetId() {
+
+        if (!event.tweet_create_events) {
+            return;
+        }
+
+        const tweet = event.tweet_create_events;
+
+        tweetId = {
+        id : Object.values(tweet)[0].id_str
+        };
     }
 
-    // Check to see if the sender is the same as the recipient of the message.
-    if (senderId === recipientId) {
-        return;
-    }
+    async function replyDirectMessage() {
 
-    // Put your own sender id to block the bot from sending DM to itself.
-    // Check it in console.log(senderId);
-    if (senderId === '1267122167306543104') {
-        return;
-    }
+        // Check to see if the message is undefined/error.
+        if (typeof messageVar.senderId === 'undefined' || typeof messageVar.senderScreenName === 'undefined' || messageVar.senderMessage === 'undefined') {
+            return;
+        }
+    
+        // Check to see if the sender is the same as the recipient of the message.
+        if (messageVar.senderId === messageVar.recipientId) {
+            return;
+        }
+    
+        // [CHANGEABLE] Put your own sender id to block the bot from sending DM to itself.
+        // Check it in console.log(senderId);
+        if (messageVar.senderId === '1267122167306543104') {
+            return;
+        }
+    
+        // [CHANGEABLE] Put your desired keyword here, replace the /tst/ keyword.
+        if (!((messageVar.senderMessage).toLowerCase()).includes('/tst/')) {
+            return;
+        }
 
-    // Rejecting all message from users below 100 followers and 500 tweets.
-    // Put your desired keyword here, replace the [test] keyword.
-    if (!(senderMessage.toLowerCase()).includes('/tst/')) {
-        return;
+        // [CHANGEABLE] Rejects all message from users below 100 followers and 500 tweets.
+        else if (!(usersVar.usersFollowersCount > 100 && usersVar.usersStatusesCount > 300)) {
+            return;
+        }
+        else
+        
+        await replyMessage(messageVar.senderId, messageVar.senderScreenName, messageVar.senderMessage, tweetId.id);
     }
-
-    else if (!(usersFollowersCount > 100 && usersStatusesCount > 300)) {
-        await rejectMessage(senderId, senderScreenName);
-        return;
-    }
-    else
 
     // Calling function to mark read the message sent to us. 
-    await markAsRead(senderMsgId, senderId).then(response => {
+    await markAsRead(messageVar.senderMsgId, messageVar.senderId).then(response => {
         //console.log(JSON.stringify(response, null, 4));
     });
 
     // Showing the typing thing when the bot is processing.
-    await indicateTyping(senderId).then(response => {
+    await indicateTyping(messageVar.senderId).then(response => {
         //console.log(JSON.stringify(response, null, 4));
     });
 
-    // This if else if functions will check the messages for an image.
-    // If there's no image, then it will check for URL/Link.
-    // If there's no URL/Link, then it will just post the text.
-    if (typeof senderAttachment !== 'undefined') {
+    await getTweetId();
 
-        const senderMediaUrl = senderAttachment.media.media_url;
+    await replyDirectMessage();
+} 
 
-        let image = {};
-        await getMedia(senderMediaUrl).then(response => {
-            //console.log(JSON.stringify(response, null, 4));
-            image = { 
-            imageBuffer: Buffer.from(response.body)
-            };
-        }); 
-        var imageBase64 = (image.imageBuffer).toString('base64');
-        var imageBytes = Buffer.byteLength(image.imageBuffer, 'base64');
-
-        let media = {};
-        await uploadMediaInit(imageBytes).then(response => {
-            //console.log(JSON.stringify(response, null, 4));
-            media = {
-            mediaBody : response.body,
-            };
-        });
-        var mediaJson = JSON.parse(media.mediaBody);
-        var mediaIdString = mediaJson.media_id_string;
-            
-        await uploadMediaAppend(mediaIdString, imageBase64).then(response => {
-            //console.log(JSON.stringify(response, null, 4));
-        });
-           
-        await uploadMediaFinalize(mediaIdString).then(response => {
-            //console.log(JSON.stringify(response, null, 4));
-        });
-
-        const senderMediaLink = message.message_create.message_data.entities.urls[0].url;
-        
-        var statusWithUrl = senderMessage;
-        var urlToRemove = senderMediaLink;
-        var statusNoUrl = statusWithUrl.replace(urlToRemove, "");
-        
-        const encodeMsg = statusNoUrl;
-        const encodeImg = mediaIdString;
-        
-        await postTweet(senderScreenName, encodeMsg, undefined, encodeImg).then(response => {
-            //console.log(JSON.stringify(response, null, 4));
-        });
-        await replyMessage(senderId, senderScreenName, senderMessage).then(response => {
-            //console.log(JSON.stringify(response, null, 4));
-        });
-    }
-
-    else if (typeof senderAttachment === 'undefined' && typeof senderUrl !== 'undefined') {
-
-        const encodeMsg = senderMessage;
-        const encodeUrl = senderUrl;
-
-        await postTweet(senderScreenName, encodeMsg, encodeUrl).then(response => {
-            //console.log(JSON.stringify(response, null, 4));
-        });
-        await replyMessage(senderId, senderScreenName, senderMessage);
-    }
-
-    else if (typeof senderAttachment === 'undefined' && typeof senderUrl === 'undefined') {
-
-        const encodeMsg = senderMessage;
-
-        await postTweet(senderScreenName, encodeMsg).then(response => {
-            //console.log('[log]' + JSON.stringify(response, null, 4));
-        });
-        await replyMessage(senderId, senderScreenName, senderMessage);
-    }
-}
-
-// And all this functions below is the functions to be called inside the processEvent function.
+// And all this functions below is the functions to be called inside the receive/replyDMEvent function.
 async function markAsRead(message_id, sender_id) {
 
     const requestRead = {
@@ -164,8 +237,8 @@ async function markAsRead(message_id, sender_id) {
         oauth: oAuthConfig,
         form: {
         last_read_event_id: message_id,
-        recipient_id: sender_id,
-        },
+        recipient_id: sender_id
+        }
     };
     return await post(requestRead).then(function(response) {
         return response;
@@ -179,8 +252,8 @@ async function indicateTyping(sender_id) {
         url: 'https://api.twitter.com/1.1/direct_messages/indicate_typing.json',
         oauth: oAuthConfig,
         form: {
-        recipient_id: sender_id,
-        },
+        recipient_id: sender_id
+        }
     };
     return await post(requestIndicator).then(function(response) {
         return response;
@@ -192,7 +265,7 @@ async function getMedia(url) {
 
     const getImage = {
         url: url,
-        oauth: oAuthConfig,
+        oauth: oAuthConfig
     };
     return await get(getImage).then(function(response) {
         return response; 
@@ -226,8 +299,8 @@ async function uploadMediaAppend(media_id, media_data) {
         command: 'APPEND',
         media_id: media_id,
         segment_index: '0',
-        media_data: media_data,
-        },
+        media_data: media_data
+        }
     };
     return await post(uploadImageAppend).then(function(response) {
         return response;
@@ -251,7 +324,7 @@ async function uploadMediaFinalize(media_id) {
     .catch(error => console.error(error));
 }
 
-async function replyMessage(sender_id, sender_screen_name, sender_message) {
+async function replyMessage(sender_id, sender_screen_name, sender_message, tweet_id) {
 
     const requestReply = {
         url: 'https://api.twitter.com/1.1/direct_messages/events/new.json',
@@ -261,16 +334,16 @@ async function replyMessage(sender_id, sender_screen_name, sender_message) {
             type: 'message_create',
             message_create: {
             target: {
-                recipient_id: sender_id,
+                recipient_id: sender_id
             },
             message_data: {
-                text: `Hi @${sender_screen_name}! 👋. Your message will be tweeted. Please wait.`,
-            },
-            },
-        },
-        },
+                text: `Hi @${sender_screen_name}! 👋. Thank you for using testingfess autobase! https://twitter.com/testingfess/status/${tweet_id}`
+            }
+            }
+        }
+        }
     };
-    console.log(`[${time}] [CONSOLE] User @${sender_screen_name} says: ${sender_message}`);
+    console.log(`[${new Date().toLocaleString()}] [CONSOLE] User @${sender_screen_name} says: ${sender_message}`);
     return await post(requestReply).then(function(response) {
         return response;
     })
@@ -287,16 +360,16 @@ async function rejectMessage(sender_id, sender_screen_name) {
             type: 'message_create',
             message_create: {
             target: {
-                recipient_id: sender_id,
+                recipient_id: sender_id
             },
             message_data: {
                 text: `Hi @${sender_screen_name}! 👋. You should have atleast 100 followers, and 300 tweets in order to send a message to this base.`,
-            },
-            },
-        },
-        },
+            }
+            }
+        }
+        }
     };
-    console.log(`[${time}] [CONSOLE] Rejected user @${sender_screen_name}'s message`);
+    console.log(`[${new Date().toLocaleString()}] [CONSOLE] Rejected user @${sender_screen_name}'s message`);
     return await post(requestReject).then(function(response) {
         return response;
     })
@@ -314,7 +387,7 @@ async function postTweet(sender_screen_name, status, attachment_url, media_ids) 
         media_ids: media_ids
         }
     };
-    console.log(`[${time}] [CONSOLE] Tweeted user @${sender_screen_name}'s message`);
+    console.log(`[${new Date().toLocaleString()}] [CONSOLE] Tweeted user @${sender_screen_name}'s message`);
     return await post(sendTwt).then(function(response) {
         return response;
     })
@@ -337,8 +410,11 @@ function sleep(ms) {
         await webhook.start();
 
         webhook.on('event', async event  => {
-            if (event) {
-                await processEvent(event);
+            if (event.direct_message_events) {
+                await receiveDMEvent(event);
+            }
+            else if (event.tweet_create_events) {
+                await replyDMEvent(event);
             }
         });
 
